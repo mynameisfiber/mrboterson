@@ -1,6 +1,8 @@
 from slackclient import SlackClient
+
 import time
 import os
+import string
 
 
 class MrBoterson(object):
@@ -8,7 +10,7 @@ class MrBoterson(object):
         self.sc = SlackClient(token)
         self.username = username
         self.userid = userid
-        self.at_mention = '<@{}>'.format(userid)
+        self._at_mention = '<@{}>'.format(userid)
         self.timeout = timeout
 
     def start(self):
@@ -22,7 +24,7 @@ class MrBoterson(object):
     def dispatch_events(self, events):
         for event in events:
             if event['type'] == 'message' and \
-                    event.get('text', '').startswith(self.at_mention):
+                    event.get('text', '').startswith(self._at_mention):
                 print("Dispatching @response")
                 self.on_at_mention(event)
             elif event['type'] == 'pin_added':
@@ -30,8 +32,16 @@ class MrBoterson(object):
                 self.on_pin(event)
 
     def on_at_mention(self, event):
-        self.sc.api_call("chat.postMessage", channel=event['channel'],
-                         text="stop taking to me", username=username)
+        strip = string.punctuation + ' '
+        message = event['text'][self._at_mention:] \
+            .strip(strip)
+        tokens = [m.strip(strip) for m inmessage.split(' ')]
+        if tokens[0] == 'dance':
+            self.sc.api_call("chat.postMessage", channel=event['channel'],
+                             text="└[∵┌]└[ ∵ ]┘[┐∵]┘", username=username)
+        else:
+            self.sc.api_call("chat.postMessage", channel=event['channel'],
+                             text="stop taking to me", username=username)
 
     def on_pin(self, event):
         self.sc.api_call(
