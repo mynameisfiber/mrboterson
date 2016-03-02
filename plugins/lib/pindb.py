@@ -2,6 +2,13 @@ import sqlite3
 from datetime import datetime
 
 
+def format_pin(pin):
+    print(pin)
+    return ("[{rowid}] On {pin_timestamp:%Y-%m-%d %H:%M:%S} " +
+            "<@{pin_user}> pinned: " +
+            "<@{msg_user}> : {message}").format(**pin)
+
+
 class PinDB(object):
     def __init__(self, db):
         self.db = sqlite3.connect(db)
