@@ -7,7 +7,8 @@ import string
 
 
 def format_pin(pin):
-    return ("On {pin_timestamp:%Y-%m-%d %H:%M:%S} " +
+    print(pin)
+    return ("[{rowid}] On {pin_timestamp:%Y-%m-%d %H:%M:%S} " +
             "<@{pin_user}> pinned: " +
             "<@{msg_user}> : {message}").format(**pin)
 
@@ -38,6 +39,9 @@ class MrBoterson(object):
             elif event['type'] == 'pin_added':
                 print("Dispatching pin")
                 self.on_pin(event)
+            elif event['type'] == 'pin_removed':
+                print("Dispatching pin removal")
+                self.on_pin_remove(event)
 
     def on_at_mention(self, event):
         strip = string.punctuation + ' '
@@ -53,6 +57,12 @@ class MrBoterson(object):
             for pin in self.pindb.get_pins(channel):
                 self.sc.api_call("chat.postMessage", channel=event['channel'],
                                  text=format_pin(pin), username=username)
+        elif message.startswith('delete pin'):
+            pins = [int(m) for m in message.split(' ') if m.isnumeric()]
+            for pin_id in pins:
+                self.pindb.delete_pin(pin_id)
+            self.sc.api_call("chat.postMessage", channel=event['channel'],
+                             text="Deleted pins", username=username)
         else:
             self.sc.api_call("chat.postMessage", channel=event['channel'],
                              text="stop taking to me", username=username)
@@ -78,6 +88,9 @@ class MrBoterson(object):
                 channel=event['channel_id'],
                 text="Hrmm... nice pin. I'll have to remember that"
             )
+
+    def on_pin_remove(self, event):
+        pass
 
 
 if __name__ == "__main__":
