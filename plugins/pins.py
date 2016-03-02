@@ -13,8 +13,26 @@ class PinsPlugin(BotPlugin):
             self.bot.send_message(event['channel'], "└[∵┌]└[ ∵ ]┘[┐∵]┘")
         elif message.startswith('get pin'):
             channel = event['channel']
-            for pin in self.pindb.get_pins(channel):
+            for pin in self.pindb.get_pins(channel=channel):
                 self.bot.send_message(event['channel'], format_pin(pin))
+        elif message.startswith('pin'):
+            numbers = [int(m) for m in message.split(' ') if m.isnumeric()]
+            if len(numbers) > 1:
+                return self.bot.send_message(event['channel'],
+                                             "errr... I didn't get that")
+            count = 1
+            if numbers:
+                count = numbers[0]
+            history = self.bot.sc.api_call(
+                'channels.history',
+                channel=event['channel'],
+                latest=event['ts'],
+                count=count
+            )
+            print(history)
+            # TODO: the rest of this... we'll need to add a multi-message pin
+            # type in pindb and format it properlly... not too bad but more
+            # than i feel like doing now
         elif message.startswith('delete pin'):
             pins = [int(m) for m in message.split(' ') if m.isnumeric()]
             for pin_id in pins:

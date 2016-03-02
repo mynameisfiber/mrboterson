@@ -36,12 +36,20 @@ class PinDB(object):
 
         )
         with self.db:
-            self.db.execute("INSERT INTO pins VALUES (?, ?, ?, ?, ?, ?, ?)", data)
+            self.db.execute("INSERT INTO pins VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            data)
 
-    def get_pins(self, channel):
+    def get_pins(self, channel=None, pin_ids=None):
         cursor = self.db.cursor()
-        cursor.execute('SELECT rowid, * FROM pins WHERE channel_id=? ' +
-                  'ORDER BY pin_timestamp ASC', (channel,))
+        if channel is not None:
+            cursor.execute('SELECT rowid, * FROM pins WHERE channel_id=? ' +
+                           'ORDER BY pin_timestamp ASC', (channel,))
+        elif pin_ids is not None:
+            for pin in pin_ids:
+                cursor.execute(
+                    'SELECT rowid, * FROM pins WHERE rowid=?',
+                    (pin,)
+                )
         for pin in cursor:
             pin['msg_timestamp'] = datetime.fromtimestamp(pin['msg_timestamp'])
             pin['pin_timestamp'] = datetime.fromtimestamp(pin['pin_timestamp'])
@@ -58,4 +66,3 @@ def dict_factory(cursor, row):
     for idx, col in enumerate(cursor.description):
         d[col[0]] = row[idx]
     return d
-

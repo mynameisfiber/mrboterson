@@ -1,3 +1,7 @@
 from .pins import PinsPlugin
+from .snark import SnarkPlugin
 
-plugins = [PinsPlugin, ]
+plugins = [
+    SnarkPlugin,
+    PinsPlugin,
+]
