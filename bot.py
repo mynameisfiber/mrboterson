@@ -1,23 +1,15 @@
 from slackclient import SlackClient
-import ujson as json
+from pindb import PinDB
 
-import time
 import os
+import time
 import string
-from datetime import datetime
-from collections import defaultdict
 
 
 def format_pin(pin):
-    data = {
-        "pin_user": pin['user'],
-        "msg_user": pin['item']['message']['user'],
-        "message": pin['item']['message']['text'],
-        "date": datetime.fromtimestamp(float(pin['item']['message']['ts'])),
-    }
-    return ("On {date:%Y-%m-%d %H:%M:%S} " +
+    return ("On {pin_timestamp:%Y-%m-%d %H:%M:%S} " +
             "<@{pin_user}> pinned: " +
-            "<@{msg_user}> : {message}").format(**data)
+            "<@{msg_user}> : {message}").format(**pin)
 
 
 class MrBoterson(object):
@@ -27,7 +19,7 @@ class MrBoterson(object):
         self.userid = userid
         self._at_mention = '<@{}>'.format(userid)
         self.timeout = timeout
-        self.load_pins()
+        self.pindb = PinDB("./pindb.sql")
 
     def start(self):
         if self.sc.rtm_connect():
@@ -58,43 +50,12 @@ class MrBoterson(object):
                              text="└[∵┌]└[ ∵ ]┘[┐∵]┘", username=username)
         elif message.startswith('get pins'):
             channel = event['channel']
-            for pin in self.get_pins(channel):
+            for pin in self.pindb.get_pins(channel):
                 self.sc.api_call("chat.postMessage", channel=event['channel'],
                                  text=format_pin(pin), username=username)
         else:
             self.sc.api_call("chat.postMessage", channel=event['channel'],
                              text="stop taking to me", username=username)
-
-    def get_pins(self, channel):
-        for timestamp, pin in self._pin_cache[channel].items():
-            yield json.load(open(pin))
-
-    def save_pin(self, pin):
-        channel_id = pin['channel_id']
-        timestamp = int(float(pin['event_ts']))
-        pin_path = "./data/{}/{}.json".format(channel_id, timestamp)
-        try:
-            parent_path = os.path.dirname(pin_path)
-            os.makedirs(parent_path, exist_ok=True)
-        except IOError:
-            raise
-        else:
-            json.dump(pin, open(pin_path, 'w+'))
-            self._pin_cache[channel_id][timestamp] = pin_path
-
-    def load_pins(self):
-        cache = defaultdict(dict)
-        for dirpath, _, fnames in os.walk('./data/'):
-            if not fnames:
-                continue
-            dirname = dirpath.split('/')[-1]
-            c = {}
-            for fname in fnames:
-                timestamp = fname.split('.')[0]
-                filepath = os.path.join(dirpath, fname)
-                c[timestamp] = filepath
-            cache[dirname] = c
-        self._pin_cache = cache
 
     def on_pin(self, event):
         if event['item']['type'] != 'message':
@@ -104,7 +65,7 @@ class MrBoterson(object):
                 text="How insensitive... I only save text pins."
             )
         try:
-            self.save_pin(event)
+            self.pindb.save_pin(event)
         except Exception as e:
             self.sc.api_call(
                 "chat.postMessage",
