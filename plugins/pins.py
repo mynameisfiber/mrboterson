@@ -11,10 +11,12 @@ class PinsPlugin(BotPlugin):
         message = event['text_clean']
         if message.startswith('dance'):
             self.bot.send_message(event['channel'], "└[∵┌]└[ ∵ ]┘[┐∵]┘")
+            return True
         elif message.startswith('get pin'):
             channel = event['channel']
             for pin in self.pindb.get_pins(channel=channel):
                 self.bot.send_message(event['channel'], format_pin(pin))
+            return True
         elif message.startswith('pin'):
             numbers = [int(m) for m in message.split(' ') if m.isnumeric()]
             if len(numbers) > 1:
@@ -30,13 +32,14 @@ class PinsPlugin(BotPlugin):
                 count=count
             )
             self._save_pin(history['messages'], meta=event)
+            return True
         elif message.startswith('delete pin'):
             pins = [int(m) for m in message.split(' ') if m.isnumeric()]
             for pin_id in pins:
                 self.pindb.delete_pin(pin_id)
             self.bot.send_message(event['channel'], "Deleted pins")
-        else:
-            self.bot.send_message(event['channel'], "stop taking to me")
+            return True
+        return False
 
     def on_pinned_item(self, event):
         if 'attachments' in event:
@@ -50,9 +53,10 @@ class PinsPlugin(BotPlugin):
                 "I don't understand that type of pin. is it like... " +
                 "meta or something?"
             )
+        return True
 
     def on_pin_remove(self, event):
-        pass
+        return False
 
     def _save_pin(self, pins, meta):
         try:

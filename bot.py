@@ -1,4 +1,5 @@
 from slackclient import SlackClient
+from websocket._exceptions import WebSocketConnectionClosedException
 import plugins
 
 import os
@@ -25,18 +26,28 @@ class MrBoterson(object):
 
     def start(self):
         print("Starting bot:", self.username)
-        if self.sc.rtm_connect():
-            while True:
-                try:
-                    events = self.sc.rtm_read()
-                    self.dispatch_events(events)
-                    time.sleep(self.timeout)
-                except Exception:
-                    print("Exception while handling events: ", events)
-                    traceback.print_exc()
-        else:
+        backoff = 1
+        if not self.sc.rtm_connect():
             print("Could not connect to slack")
             return False
+        while True:
+            try:
+                events = self.sc.rtm_read()
+                self.dispatch_events(events)
+                time.sleep(self.timeout)
+            except WebSocketConnectionClosedException:
+                print("Websocket disconnected... attempting reconnect")
+                if not self.sc.rtm_connect():
+                    print("Could not connect, backing off: " +
+                          "{} seconds".format(backoff))
+                    time.sleep(backoff)
+                    backoff *= 2
+                else:
+                    print("Reconnected!")
+                    backoff = 1
+            except Exception:
+                print("Exception while handling events: ", events)
+                traceback.print_exc()
 
     def dispatch_events(self, events):
         events = self.parse_events(events)
@@ -45,10 +56,13 @@ class MrBoterson(object):
         for event in events:
             event_type = event['type']
             event_handlers = self.handlers.get(event_type, {})
+            did_respond = False
             for handler in event_handlers:
                 plugin_name = handler.__self__.__class__.__name__
                 print("Dispatching {} to {}".format(event_type, plugin_name))
-                handler(event)
+                did_respond |= handler(event)
+            if event_handlers and not did_respond:
+                self.send_message(event['channel'], "whhaaa?")
 
     def send_message(self, channel, text):
         return self.sc.api_call("chat.postMessage", channel=channel,
