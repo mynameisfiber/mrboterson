@@ -2,6 +2,7 @@ from slackclient import SlackClient
 import plugins
 
 import os
+import traceback
 import random
 import time
 import string
@@ -26,9 +27,13 @@ class MrBoterson(object):
         print("Starting bot:", self.username)
         if self.sc.rtm_connect():
             while True:
-                events = self.sc.rtm_read()
-                self.dispatch_events(events)
-                time.sleep(self.timeout)
+                try:
+                    events = self.sc.rtm_read()
+                    self.dispatch_events(events)
+                    time.sleep(self.timeout)
+                except Exception:
+                    print("Exception while handling events: ", events)
+                    traceback.print_exc()
         else:
             print("Could not connect to slack")
             return False
@@ -58,6 +63,9 @@ class MrBoterson(object):
     def parse_events(self, events):
         for event in events:
             # messages need some special handling
+            if event['type'] == 'message' and 'subtype' in event and \
+                    'text' not in event:
+                event['type'] = event['subtype']
             if event['type'] == 'message':
                 strip = string.punctuation + ' '
                 tokens = event['text'].split(' ')

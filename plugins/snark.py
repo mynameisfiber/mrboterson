@@ -5,7 +5,7 @@ import time
 
 class SnarkPlugin(BotPlugin):
     queue = []
-    probability = 0.05
+    probability = 0.1
     messages = [
         "Maybe you should try saying please... I'm not your servant",
         "A 'please' wouldn't kill you?",
