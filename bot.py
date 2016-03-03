@@ -53,7 +53,7 @@ class MrBoterson(object):
     def send_message(self, channel, text):
         return self.sc.api_call("chat.postMessage", channel=channel,
                                 text=text, username=self.username,
-                                icon_url=self.icon_url)
+                                icon_url=self.icon_url, link_names=1)
 
     @property
     def icon_url(self):
@@ -63,8 +63,7 @@ class MrBoterson(object):
     def parse_events(self, events):
         for event in events:
             # messages need some special handling
-            if event['type'] == 'message' and 'subtype' in event and \
-                    'text' not in event:
+            if event['type'] == 'message' and 'subtype' in event:
                 event['type'] = event['subtype']
             if event['type'] == 'message':
                 strip = string.punctuation + ' '

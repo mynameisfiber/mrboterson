@@ -29,10 +29,7 @@ class PinsPlugin(BotPlugin):
                 latest=event['ts'],
                 count=count
             )
-            print(history)
-            # TODO: the rest of this... we'll need to add a multi-message pin
-            # type in pindb and format it properlly... not too bad but more
-            # than i feel like doing now
+            self._save_pin(history['messages'], meta=event)
         elif message.startswith('delete pin'):
             pins = [int(m) for m in message.split(' ') if m.isnumeric()]
             for pin_id in pins:
@@ -41,24 +38,32 @@ class PinsPlugin(BotPlugin):
         else:
             self.bot.send_message(event['channel'], "stop taking to me")
 
-    def on_pin(self, event):
-        if event['item']['type'] != 'message':
-            self.bot.send_message(
-                event['channel_id'],
-                "How insensitive... I only save _text_ pins."
-            )
-        try:
-            self.pindb.save_pin(event)
-        except Exception as e:
-            self.bot.send_message(
-                event['channel_id'],
-                "Couldn't save that: {}".format(e)
-            )
+    def on_pinned_item(self, event):
+        if 'attachments' in event:
+            self._save_pin(event['attachments'], meta=event)
+        elif 'item' in event:
+            event['item']['text'] = event['text']
+            self._save_pin((event['item'],), meta=event)
         else:
             self.bot.send_message(
-                event['channel_id'],
-                "Hrmm... nice pin. I'll have to remember that"
+                event['channel'],
+                "I don't understand that type of pin. is it like... " +
+                "meta or something?"
             )
 
     def on_pin_remove(self, event):
         pass
+
+    def _save_pin(self, pins, meta):
+        try:
+            self.pindb.save_pins(pins, meta)
+        except Exception as e:
+            self.bot.send_message(
+                meta['channel'],
+                "Couldn't save that: {}".format(e)
+            )
+        else:
+            self.bot.send_message(
+                meta['channel'],
+                "Hrmm... nice pin. I'll have to remember that"
+            )

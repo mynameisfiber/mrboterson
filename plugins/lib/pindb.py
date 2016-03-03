@@ -1,12 +1,14 @@
 import sqlite3
+import ujson as json
 from datetime import datetime
 
 
 def format_pin(pin):
-    print(pin)
-    return ("[{rowid}] On {pin_timestamp:%Y-%m-%d %H:%M:%S} " +
-            "<@{pin_user}> pinned: " +
-            "<@{msg_user}> : {message}").format(**pin)
+    header = ("[{rowid}] On {timestamp:%Y-%m-%d %H:%M:%S} " +
+              "<@{user}> pinned to <#{channel_id}>").format(**pin)
+    if '\n' in pin['display']:
+        pin['display'] = '\n' + pin['display']
+    return "{}: {}".format(header, pin['display'])
 
 
 class PinDB(object):
@@ -16,34 +18,41 @@ class PinDB(object):
         with self.db:
             self.db.execute('''CREATE TABLE IF NOT EXISTS pins (
                 channel_id text,
-                pin_user text,
-                pin_timestamp real,
+                user text,
+                timestamp real,
                 msg_user text,
-                message text,
-                msg_timestamp real,
-                link text
+                display text,
+                data text
             );''')
 
-    def save_pin(self, pin):
-        data = (
-            pin['channel_id'],
-            pin['user'],
-            float(pin['event_ts']),
-            pin['item']['message']['user'],
-            pin['item']['message']['text'],
-            float(pin['item']['message']['ts']),
-            pin['item']['message']['permalink'],
-
-        )
+    def save_pins(self, pins, meta):
+        for pin in pins:
+            if 'fallback' in pin:
+                idx = pin['fallback'].index('] ')
+                if idx > 0:
+                    pin['display'] = pin['fallback'][idx+1:]
+                if 'user' not in pin:
+                    pin['user'] = pin['author_subname']
+            elif 'user' in pin:
+                pin['display'] = "<@{user}>: {text}".format(**pin)
+        users = ",".join(p['user'] for p in pins)
         with self.db:
-            self.db.execute("INSERT INTO pins VALUES (?, ?, ?, ?, ?, ?, ?)",
+            data = (
+                meta['channel'],
+                meta['user'],
+                float(meta['ts']),
+                users,
+                '\n'.join(p['display'] for p in pins),
+                json.dumps(pins),
+            )
+            self.db.execute("INSERT INTO pins VALUES (?,?,?,?,?,?)",
                             data)
 
     def get_pins(self, channel=None, pin_ids=None):
         cursor = self.db.cursor()
         if channel is not None:
             cursor.execute('SELECT rowid, * FROM pins WHERE channel_id=? ' +
-                           'ORDER BY pin_timestamp ASC', (channel,))
+                           'ORDER BY timestamp ASC', (channel,))
         elif pin_ids is not None:
             for pin in pin_ids:
                 cursor.execute(
@@ -51,8 +60,7 @@ class PinDB(object):
                     (pin,)
                 )
         for pin in cursor:
-            pin['msg_timestamp'] = datetime.fromtimestamp(pin['msg_timestamp'])
-            pin['pin_timestamp'] = datetime.fromtimestamp(pin['pin_timestamp'])
+            pin['timestamp'] = datetime.fromtimestamp(pin['timestamp'])
             yield pin
         cursor.close()
 
