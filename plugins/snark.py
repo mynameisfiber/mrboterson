@@ -9,7 +9,8 @@ class SnarkPlugin(BotPlugin):
     messages = [
         "Maybe you should try saying please... I'm not your servant",
         "A 'please' wouldn't kill you?",
-        "Do you know how long it's been since I've taken a vacation? You could at least say please",
+        "Do you know how long it's been since I've taken a vacation? " +
+            "You could at least say please",
     ]
     waiting_messages = [
         "I'm waiting",

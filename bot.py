@@ -7,13 +7,14 @@ import traceback
 import random
 import time
 import string
+from operator import itemgetter
 from collections import defaultdict
 
 
 class MrBoterson(object):
-    def __init__(self, token, username, userid, timeout=1):
+    def __init__(self, token, botname, userid, timeout=1):
         self.sc = SlackClient(token)
-        self.username = username
+        self.botname = botname
         self.userid = userid
         self._at_mention = '<@{}>'.format(userid)
         self.timeout = timeout
@@ -25,7 +26,7 @@ class MrBoterson(object):
                 self.handlers[event_type].extend(handlers)
 
     def start(self):
-        print("Starting bot:", self.username)
+        print("Starting bot:", self.botname)
         backoff = 1
         if not self.sc.rtm_connect():
             print("Could not connect to slack")
@@ -56,6 +57,10 @@ class MrBoterson(object):
         for event in events:
             event_type = event['type']
             event_handlers = self.handlers.get(event_type, {})
+            if event_type == 'at_mention' and \
+                    event['text_clean'].startswith('help'):
+                self.help(event['channel'])
+                continue
             did_respond = False
             for handler in event_handlers:
                 plugin_name = handler.__self__.__class__.__name__
@@ -64,9 +69,18 @@ class MrBoterson(object):
             if event_handlers and not did_respond:
                 self.send_message(event['channel'], "whhaaa?")
 
+    def help(self, channel):
+        combined_help = {}
+        for plugin in self.plugins:
+            combined_help.update(plugin.help())
+        output = list(combined_help.items())
+        output.sort(key=itemgetter(0))
+        help_string = "\n".join("{}\t---\t{}".format(*o) for o in output)
+        self.send_message(channel, help_string.format(botname=botname))
+
     def send_message(self, channel, text):
         return self.sc.api_call("chat.postMessage", channel=channel,
-                                text=text, username=self.username,
+                                text=text, botname=self.botname,
                                 icon_url=self.icon_url, link_names=1)
 
     @property
@@ -95,7 +109,7 @@ class MrBoterson(object):
 
 if __name__ == "__main__":
     token = os.environ['SLACK_TOKEN']
-    username = 'mrbotserson'
+    botname = 'mrbotserson'
     userid = 'U0PRAMS64'
-    bot = MrBoterson(token, username, userid)
+    bot = MrBoterson(token, botname, userid)
     bot.start()

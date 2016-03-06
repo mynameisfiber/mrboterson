@@ -5,6 +5,9 @@ class BotPlugin(object):
     def events_transform(self, events):
         return events
 
+    def help(self):
+        return {}
+
     @property
     def handlers(self):
         handlers = {}
