@@ -42,7 +42,7 @@ class ConversationManager(object):
         self.trim_queue()
         triggered_conversations = []
         for event in events:
-            if event['type'] in ('at_mention', 'message'):
+            if self.queue and 'message' in event['type']:
                 for i, conv in enumerate(self.queue):
                     if conv.conversation_applies(event):
                         conv.add_event(event)
@@ -81,8 +81,8 @@ class Conversation(object):
 
     def conversation_applies(self, event):
         return (not self.finished and
-                (self.users is None or event['user'] in self.users) and
-                (self.channel is None or self.channel == event['channel']))
+                (self.users is None or event.get('user') in self.users) and
+                (self.channel is None or self.channel == event.get('channel')))
 
     def done(self):
         self.finished = True

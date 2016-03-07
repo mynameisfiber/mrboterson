@@ -69,7 +69,7 @@ class MrBoterson(object):
     def dispatch_events(self, events):
         tick_event = [{'type': 'tick', 't': time.time(),
                        'datetime': datetime.now(),
-                       'dt': timedelta(self.timeout)}]
+                       'dt': timedelta(seconds=self.timeout)}]
         events = self.injected_events + tick_event + events
         self.injected_events = self.injected_events[:0]
         for events_transform in self.events_transforms:
@@ -77,23 +77,27 @@ class MrBoterson(object):
         for events_transform in self.plugin_events_transforms:
             events = events_transform(events)
         for event in events:
-            event_type = event['type']
-            event_handlers = self.handlers.get(event_type, {})
-            if event_type == 'at_mention' and \
+            did_respond = None
+            event_types = event['type']
+            if 'at_mention' in event_types and \
                     event['text_clean'].startswith('help'):
                 self.help(event['channel'])
+                did_respond = True
                 continue
-            did_respond = False
-            for handler in event_handlers:
-                plugin_name = handler.__self__.__class__.__name__
-                if event_type is 'tick':
-                    print('.', end='', flush=True)
-                else:
-                    print("\nDispatching {} to {}".format(event_type, plugin_name), end='')
-                response = handler(event)
-                if response is not None:
-                    did_respond |= response
-            if event_handlers and not did_respond and event_type is not 'tick':
+            for event_type in event_types:
+                event_handlers = self.handlers.get(event_type, [])
+                for handler in event_handlers:
+                    plugin_name = handler.__self__.__class__.__name__
+                    if 'tick' in event_type:
+                        print('.', end='', flush=True)
+                    else:
+                        print("\nDispatching {} to {}"
+                              .format(event_type, plugin_name), end='')
+                    response = handler(event)
+                    if response is not None and response:
+                        did_respond = True
+            if did_respond is not None and not did_respond and \
+                    event_type not in ('tick', 'message'):
                 self.send_message(event['channel'], "whhaaa?")
 
     def help(self, channel):
@@ -117,10 +121,11 @@ class MrBoterson(object):
 
     def parse_events(self, events):
         for event in events:
+            event['type'] = set((event['type'],))
             # messages need some special handling
-            if event['type'] == 'message' and 'subtype' in event:
-                event['type'] = event['subtype']
-            if event['type'] == 'message':
+            if 'subtype' in event:
+                event['type'].add(event['subtype'])
+            if 'message' in event['type']:
                 strip = string.punctuation + ' '
                 tokens = event['text'].split(' ')
                 if tokens[0].startswith("<@U"):
@@ -130,7 +135,9 @@ class MrBoterson(object):
                 message = ' '.join(m.lower().strip(strip) for m in tokens)
                 event['text_clean'] = message
                 if event.get('at_mention', '') == self.userid:
-                    event['type'] = 'at_mention'
+                    event['type'].add('at_mention')
+                if event.get('channel', '').startswith("D"):
+                    event['type'].add('direct_message')
             yield event
 
 

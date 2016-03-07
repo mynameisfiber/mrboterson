@@ -1,4 +1,5 @@
 from .lib.botplugin import BotPlugin
+from .lib import text_parser
 from dateutil import rrule
 from dateutil import parser as dateparser
 from datetime import (datetime, timedelta)
@@ -30,39 +31,68 @@ class MeetingPlugin(BotPlugin):
                 self.nag_leadup(channel, meeting)
             elif meeting['rrule'].between(before, now):
                 self.do_meeting(channel, meeting)
+                meeting['responses'] = defaultdict(dict)
         return True
 
     def do_meeting(self, channel, meeting):
         responses = []
-        for question, responses in meeting['responses']:
+        for question, answers in meeting['responses'].items():
             out = 'To the question: {}\n'.format(question) + \
-                "\n".join("<@{}> said: {}".format(u, r)
-                          for u, r in responses.items())
+                "\n".join("<@{}> said: {}".format(u, a)
+                          for u, a in answers.items())
             responses.append(out)
-        self.bot.message(channel, "Time for another fun meeting!")
-        self.bot.message(channel,  "\n".join(responses))
+        self.bot.send_message(channel, "Time for another fun meeting!")
+        self.bot.send_message(channel,  "\n".join(responses))
 
     def do_leadup(self, event):
-        # TODO: extract channel id from message and start the
-        # _on_leadup_response process.. still need to figure out the format of
-        # the `responses` key
-        pass
+        meeting_channel = text_parser.get_channels(event['text'])
+        if len(meeting_channel) != 1:
+            return self.bot.send_message(
+                event['channel'],
+                "You should tell me what channel this "
+                "is for (`start #example`)"
+            )
+        channel = meeting_channel[0]
+        try:
+            meeting = self.db[channel]
+        except KeyError:
+            return self.bot.send_message(event['channel'],
+                "Channel isn't registered for meetings")
+        questions = list(meeting['questions'].values())
+        if not questions:
+            return self.bot.send_message(event['channel'],
+                "No questions registered for that meeting!")
+        meta = {
+            'channel': meeting_channel[0],
+            'questions': questions[:-1],
+            'cur_question': questions[-1],
+        }
+        self.bot.conversations.start_conversation(
+            event['channel'],
+            "In one line, tell me: " + meta['cur_question'],
+            users=(event['user'],),
+            reply_callback=self._on_leadup_response,
+            meta=meta,
+            timeout=5*60,
+            expire_callback=self._try_later
+        )
 
     def _on_leadup_response(self, conv):
+        user = conv.users[0]
         meeting_channel = conv.meta['channel']
         meeting = self.db[meeting_channel]
-        q_answered = conv.meta['qid_queue'].pop()
-        meeting['responses'][q_answered][conv.user] = conv.events[-1]['text']
-        if conv.meta['qid_queue']:
-            qid = conv.meta['qid_queue'][-1]
-            self.bot.conversations.start_converation(
-                meeting['questions'][qid],
-                user=conv.user,
-                channel=conv.channel,
-                reply_callback=self._on_leadup_response,
-                expire_callback=self._try_later,
-                timeout=60*10,
-            )
+        q_answered = conv.meta['cur_question']
+        meeting['responses'][q_answered].setdefault(user, {})
+        meeting['responses'][q_answered][user] = \
+            conv.events[-1]['text']
+        if conv.meta['questions']:
+            conv.meta['cur_question'] = conv.meta['questions'].pop()
+            self.bot.send_message(conv.channel,
+                "In one line, tell me: " + conv.meta['cur_question'])
+        else:
+            self.bot.send_message(conv.channel,
+                                  "OK! You're ready for the meeting")
+            conv.done()
 
     def _try_later(self, conv):
         self.bot.send_message(
@@ -75,6 +105,8 @@ class MeetingPlugin(BotPlugin):
         members = channel_info['channel']['members']
         for member in members:
             dm_info = self.bot.sc.api_call('im.open', user=member)
+            if 'error' in dm_info:
+                continue
             dm_channel = dm_info['channel']['id']
             self.bot.send_message(
                 dm_channel,
@@ -126,8 +158,8 @@ class MeetingPlugin(BotPlugin):
             else:
                 channel_qs = self.db[event['channel']]['questions']
                 idx = lowest_new_index(channel_qs)
-                question = event['text_clean'][len('add question'):]
-                channel_qs[idx] = question
+                question = event['text_clean'][len('add question'):] + '?'
+                channel_qs[idx] = question.strip()
                 self.bot.send_message(event['channel'],
                                       "Added new question: " + question)
         elif event['text_clean'].startswith('delete question'):
@@ -150,12 +182,28 @@ class MeetingPlugin(BotPlugin):
                                                  for q in removed_questions)
                 self.bot.send_message(event['channel'],
                                       "Removed: " + removed_notification)
-        elif event['channel'][0] == 'D' and \
-                event['text_clean'].startswith('start'):
-            self.do_leadup(event)
+        elif event['text_clean'].startswith('show answers'):
+            possible_channel = text_parser.get_channels(event['text'])
+            if possible_channel:
+                channel = possible_channel[0]
+            else:
+                channel = event['channel']
+            try:
+                meeting = self.db[channel]
+            except KeyError:
+                return self.bot.send_message(channel,
+                    "Channel doesn't have any meetings")
+            self.do_meeting(event['channel'], meeting)
         else:
             return False
         return True
+
+    def on_direct_message(self, event):
+        if event['channel'][0] == 'D' and \
+                event['text_clean'].startswith('start'):
+            self.do_leadup(event)
+            return True
+        return False
 
 
 def _parse_rrule(event):
@@ -189,7 +237,6 @@ def _parse_rrule(event):
         start_idx = tokens.index('starting')
         dtstart = dateparser.parse(" ".join(tokens[start_idx+1:]), fuzzy=True)
     except ValueError as e:
-        print(e)
         dtstart = datetime.now()
 
     human_str = "every {} {} starting in {}".format(
