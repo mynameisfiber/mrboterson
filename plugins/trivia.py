@@ -62,6 +62,7 @@ class TriviaPlugin(BotPlugin):
                 "Couldn't get trivia questions... try again later: " + str(e))
             self._end_trivia(channel)
         meta = question
+        meta['attempts'] = 0
         conv = self.bot.conversations.start_conversation(
             channel,
             'New Question: ' + question['question'],
@@ -74,11 +75,13 @@ class TriviaPlugin(BotPlugin):
 
     def _on_answer(self, conv):
         channel = conv.channel
-        answer = conv.meta['answer']
+        answer = conv.meta['answer'].lower()
         win_event = None
         for event in conv.events:
+            if 'trivia' in event:
+                continue
             if event['text_clean'].startswith('stop trivia'):
-                return self._end_trivia()
+                return self._end_trivia(channel)
             score = fuzz.token_set_ratio(event['text_clean'], answer)
             if score > 90:
                 win_event = event
@@ -86,6 +89,8 @@ class TriviaPlugin(BotPlugin):
             elif score > 50:
                 self.bot.send_message(channel,
                     "<@{}> Not quite...".format(event['user']))
+            event['trivia'] = True
+            conv.meta['attempts'] += 1
         if win_event is not None:
             user = win_event['user']
             self.status[channel]['scores'][user] += 1
@@ -100,5 +105,9 @@ class TriviaPlugin(BotPlugin):
         self.bot.send_message(channel,
             "Nobody got it... the answer is {}".format(answer))
         conv.done()
-        self.ask_question(channel)
+        if conv.meta['attempts']:
+            self.ask_question(channel)
+        else:
+            self.bot.send_message(channel,
+                "Turning off trivia until you get your head in the game")
 

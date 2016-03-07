@@ -121,7 +121,8 @@ class MrBoterson(object):
 
     def parse_events(self, events):
         for event in events:
-            event['type'] = set((event['type'],))
+            if not isinstance(event['type'], set):
+                event['type'] = set((event['type'],))
             # messages need some special handling
             if 'subtype' in event:
                 event['type'].add(event['subtype'])
