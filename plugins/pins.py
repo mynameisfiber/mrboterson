@@ -9,7 +9,6 @@ class PinsPlugin(BotPlugin):
 
     def help(self):
         return {
-            "@{botname}: dance": "Do a little dance",
             "@{botname}: get pins": "Show pins",
             "@{botname}: pin [N]": "Pin the last N messages",
             "@{botname}: delete pin [ID]": "Delete pin with ID",
@@ -17,10 +16,7 @@ class PinsPlugin(BotPlugin):
 
     def on_at_mention(self, event):
         message = event['text_clean']
-        if message.startswith('dance'):
-            self.bot.send_message(event['channel'], "└[∵┌]└[ ∵ ]┘[┐∵]┘")
-            return True
-        elif message.startswith('get pins'):
+        if message.startswith('get pins'):
             channel = event['channel']
             for pin in self.pindb.get_pins(channel=channel):
                 self.bot.send_message(event['channel'], format_pin(pin))

@@ -1,2 +1,4 @@
 humanize
 slackclient
+requests
+fuzzywuzzy
