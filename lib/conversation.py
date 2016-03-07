@@ -58,7 +58,7 @@ class ConversationManager(object):
         cur_time = time.time()
         while self.queue and self.queue[0].expire_time < cur_time:
             item = self.queue.popleft()
-            if item.expire_callback:
+            if not item.finished and item.expire_callback:
                 item.expire_callback(item)
 
 
