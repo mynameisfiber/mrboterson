@@ -3,12 +3,11 @@ import random
 
 
 class SnarkPlugin(BotPlugin):
-    probability = 0.5
+    probability = 0.05
     messages = [
         "Maybe you should try saying please... I'm not your servant",
-        "A 'please' wouldn't kill you?",
-        "Do you know how long it's been since I've taken a vacation? " +
-            "You could at least say please",
+        "A 'please' wouldn't kill you.",
+        "Do you know how long it's been since I've taken a vacation?",
     ]
     thanks = [
         "See! That wasn't hard.",
