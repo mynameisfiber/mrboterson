@@ -24,18 +24,23 @@ class SnarkPlugin(BotPlugin):
 
     def events_transform(self, events):
         for event in events:
-            if event['type'] == 'at_mention' and \
-                    'ignore_snark' not in event and \
-                    random.random() < self.probability and \
-                    'please' not in event['text_clean']:
-                conv = self.bot.conversations.add_conversation(
-                    event,
-                    reply_callback=self.reply_callback,
-                    expire_callback=self.expire_callback,
-                )
-                self.rand_message(conv, self.messages)
-            else:
-                yield event
+            if event['type'] == 'at_mention':
+                if event['text_clean'].startswith('please'):
+                    event['text_clean'] = event['text_clean'][6:].strip()
+                elif event['text_clean'].endswith('please'):
+                    event['text_clean'] = event['text_clean'][:-6].strip()
+                elif 'ignore_snark' not in event and \
+                        random.random() < self.probability:
+                    conv = self.bot.conversations.add_conversation(
+                        event,
+                        users=(event['user'],),
+                        channel=event['channel'],
+                        reply_callback=self.reply_callback,
+                        expire_callback=self.expire_callback,
+                    )
+                    self.rand_message(conv, self.messages)
+                    continue
+            yield event
 
     def reply_callback(self, conv):
         if 'please' in conv.events[-1]['text_clean']:

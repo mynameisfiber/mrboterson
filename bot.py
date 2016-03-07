@@ -7,6 +7,7 @@ import os
 import traceback
 import random
 import time
+from datetime import (timedelta, datetime)
 import string
 from operator import itemgetter
 from collections import defaultdict
@@ -22,7 +23,7 @@ class MrBoterson(object):
         self.injected_events = []
 
         # set up global bot transforms
-        self.conversations = ConversationManager()
+        self.conversations = ConversationManager(self)
         self.events_transforms = [
             self.parse_events, # should always be first
             self.conversations.events_transform
@@ -66,7 +67,10 @@ class MrBoterson(object):
         self.injected_events.append(event)
 
     def dispatch_events(self, events):
-        events = self.injected_events + events
+        tick_event = [{'type': 'tick', 't': time.time(),
+                       'datetime': datetime.now(),
+                       'dt': timedelta(self.timeout)}]
+        events = self.injected_events + tick_event + events
         self.injected_events = self.injected_events[:0]
         for events_transform in self.events_transforms:
             events = events_transform(events)
@@ -82,9 +86,14 @@ class MrBoterson(object):
             did_respond = False
             for handler in event_handlers:
                 plugin_name = handler.__self__.__class__.__name__
-                print("Dispatching {} to {}".format(event_type, plugin_name))
-                did_respond |= handler(event)
-            if event_handlers and not did_respond:
+                if event_type is 'tick':
+                    print('.', end='', flush=True)
+                else:
+                    print("\nDispatching {} to {}".format(event_type, plugin_name), end='')
+                response = handler(event)
+                if response is not None:
+                    did_respond |= response
+            if event_handlers and not did_respond and event_type is not 'tick':
                 self.send_message(event['channel'], "whhaaa?")
 
     def help(self, channel):
