@@ -1,5 +1,6 @@
 from slackclient import SlackClient
 from websocket._exceptions import WebSocketConnectionClosedException
+from lib.conversation import ConversationManager
 import plugins
 
 import os
@@ -18,8 +19,19 @@ class MrBoterson(object):
         self.userid = userid
         self._at_mention = '<@{}>'.format(userid)
         self.timeout = timeout
+        self.injected_events = []
+
+        # set up global bot transforms
+        self.conversations = ConversationManager()
+        self.events_transforms = [
+            self.parse_events, # should always be first
+            self.conversations.events_transform
+        ]
+
+        # set up plugins
         self.plugins = [p(self) for p in plugins.plugins]
-        self.events_transforms = [p.events_transform for p in self.plugins]
+        self.plugin_events_transforms = [p.events_transform
+                                         for p in self.plugins]
         self.handlers = defaultdict(list)
         for plugin in self.plugins:
             for event_type, handlers in plugin.handlers.items():
@@ -50,9 +62,15 @@ class MrBoterson(object):
                 print("Exception while handling events: ", events)
                 traceback.print_exc()
 
+    def inject_event(self, event):
+        self.injected_events.append(event)
+
     def dispatch_events(self, events):
-        events = self.parse_events(events)
-        for i, events_transform in enumerate(self.events_transforms):
+        events = self.injected_events + events
+        self.injected_events = self.injected_events[:0]
+        for events_transform in self.events_transforms:
+            events = events_transform(events)
+        for events_transform in self.plugin_events_transforms:
             events = events_transform(events)
         for event in events:
             event_type = event['type']
@@ -104,7 +122,7 @@ class MrBoterson(object):
                 event['text_clean'] = message
                 if event.get('at_mention', '') == self.userid:
                     event['type'] = 'at_mention'
-        return events
+            yield event
 
 
 if __name__ == "__main__":
