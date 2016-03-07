@@ -126,6 +126,8 @@ class MrBoterson(object):
             # messages need some special handling
             if 'subtype' in event:
                 event['type'].add(event['subtype'])
+                if event['subtype'] in ('message_changed', 'bot_message'):
+                    event['type'].discard('message')
             if 'message' in event['type']:
                 strip = string.punctuation + ' '
                 tokens = event['text'].split(' ')

@@ -10,7 +10,8 @@ class TriviaPlugin(BotPlugin):
 
     def help(self):
         return {
-            "@{botname}: dance": "Do a little dance",
+            "@{botname}: start trivia": "Starts trivia",
+            "stop trivia": "Where once there was trivia, there will no longer be",
         }
 
     def on_at_mention(self, event):
@@ -68,7 +69,7 @@ class TriviaPlugin(BotPlugin):
             'New Question: ' + question['question'],
             reply_callback=self._on_answer,
             expire_callback=self._end_time,
-            timeout=60,
+            timeout=45,
             meta=meta,
         )
         self.status[channel]['conv'] = conv
@@ -83,12 +84,17 @@ class TriviaPlugin(BotPlugin):
             if event['text_clean'].startswith('stop trivia'):
                 return self._end_trivia(channel)
             score = fuzz.token_set_ratio(event['text_clean'], answer)
-            if score > 90:
+            if score > 80:
                 win_event = event
                 break
             elif score > 50:
-                self.bot.send_message(channel,
-                    "<@{}> Not quite...".format(event['user']))
+                try:
+                    self.bot.send_message(channel,
+                        "<@{}> Not quite...".format(event['user']))
+                except KeyError as e:
+                    import traceback
+                    print("\n\nSomething went wrong in trivia")
+                    traceback.print_exc()
             event['trivia'] = True
             conv.meta['attempts'] += 1
         if win_event is not None:
