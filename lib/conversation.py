@@ -47,11 +47,15 @@ class ConversationManager(object):
                     if conv.conversation_applies(event):
                         conv.add_event(event)
                         triggered_conversations.append(conv)
+            yield_event = True
             if triggered_conversations:
+                yield_event = False
                 for conv in triggered_conversations:
-                    conv.reply_callback(conv)
+                    resp = conv.reply_callback(conv)
+                    if resp is True:
+                        yield_event = True
                 triggered_conversations = []
-            else:
+            if yield_event:
                 yield event
 
     def trim_queue(self):

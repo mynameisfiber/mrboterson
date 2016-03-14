@@ -2,3 +2,5 @@ humanize
 slackclient
 requests
 fuzzywuzzy
+python-Levenshtein
+dateutils
