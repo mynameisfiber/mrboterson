@@ -3,9 +3,10 @@ from .lib import text_parser
 from dateutil import rrule
 from dateutil import parser as dateparser
 from datetime import (datetime, timedelta)
+import humanize
 from collections import defaultdict
 from itertools import count
-import humanize
+import pickle
 
 
 def lowest_new_index(keys):
@@ -15,7 +16,16 @@ def lowest_new_index(keys):
 
 
 class MeetingPlugin(BotPlugin):
-    db = defaultdict(dict)
+    def __init__(self, bot):
+        try:
+            self.db = pickle.load(open("./meeting.pkl"))
+        except IOError as e:
+            print("Couldn't load meeting backup, starting fresh: ", e)
+            self.db = defaultdict(dict)
+        super().__init__(bot)
+
+    def _save(self):
+        pickle.dump(self.db, open("./meeting.pkl", 'w+'))
 
     def help(self):
         return {
@@ -85,6 +95,7 @@ class MeetingPlugin(BotPlugin):
         meeting['responses'][q_answered].setdefault(user, {})
         meeting['responses'][q_answered][user] = \
             conv.events[-1]['text']
+        self._save()
         if conv.meta['questions']:
             conv.meta['cur_question'] = conv.meta['questions'].pop()
             self.bot.send_message(conv.channel,
@@ -132,6 +143,7 @@ class MeetingPlugin(BotPlugin):
                         repeat_str
                     )
                 )
+                self._save()
         elif event['text_clean'].startswith('unregister'):
             removed = self.db.pop(event['channel'], None)
             if removed:
@@ -142,6 +154,7 @@ class MeetingPlugin(BotPlugin):
                     event['channel'],
                     "No more meetings in <#{}>! Woo!".format(event['channel'])
                 )
+                self._save()
         elif event['text_clean'].startswith('list questions'):
             questions = ", ".join(
                 '"[{}] {}"'.format(i, q)
@@ -162,6 +175,7 @@ class MeetingPlugin(BotPlugin):
                 channel_qs[idx] = question.strip()
                 self.bot.send_message(event['channel'],
                                       "Added new question: " + question)
+                self._save()
         elif event['text_clean'].startswith('delete question'):
             message = event['text_clean']
             qids = [int(m) for m in message.split(' ') if m.isnumeric()]
@@ -182,6 +196,7 @@ class MeetingPlugin(BotPlugin):
                                                  for q in removed_questions)
                 self.bot.send_message(event['channel'],
                                       "Removed: " + removed_notification)
+                self._save()
         elif event['text_clean'].startswith('show answers'):
             possible_channel = text_parser.get_channels(event['text'])
             if possible_channel:
