@@ -146,7 +146,7 @@ class MrBoterson(object):
 
 if __name__ == "__main__":
     token = os.environ['SLACK_TOKEN']
+    userid = os.environ['SLACK_ID']
     botname = 'mrboterson'
-    userid = 'U0SJU20P7'
     bot = MrBoterson(token, botname, userid)
     bot.start()

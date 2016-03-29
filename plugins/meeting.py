@@ -18,14 +18,14 @@ def lowest_new_index(keys):
 class MeetingPlugin(BotPlugin):
     def __init__(self, bot):
         try:
-            self.db = pickle.load(open("./meeting.pkl"))
+            self.db = pickle.load(open("./meeting.pkl", 'rb'))
         except IOError as e:
             print("Couldn't load meeting backup, starting fresh: ", e)
             self.db = defaultdict(dict)
         super().__init__(bot)
 
     def _save(self):
-        pickle.dump(self.db, open("./meeting.pkl", 'w+'))
+        pickle.dump(self.db, open("./meeting.pkl", 'wb+'))
 
     def help(self):
         return {
@@ -259,6 +259,8 @@ def _parse_rrule(event):
         freq_str + ('s' if interval > 0 else ''),
         humanize.naturaltime(datetime.now() - dtstart, future=True)
     )
-    repeat_rule = rrule.rrule(freq, dtstart=dtstart, interval=interval)
-    leadtime_rule = rrule.rrule(freq, dtstart=dtstart-leadtime, interval=interval)
+    repeat_rule = rrule.rrule(freq, dtstart=dtstart, interval=interval,
+                              cache=True)
+    leadtime_rule = rrule.rrule(freq, dtstart=dtstart-leadtime,
+                                interval=interval, cache=True)
     return repeat_rule, leadtime_rule, human_str
