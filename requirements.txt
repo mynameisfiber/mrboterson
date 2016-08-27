@@ -1,6 +1,6 @@
 humanize
-slackclient
-requests
+websocket
+aiohttp
 fuzzywuzzy
 python-Levenshtein
 dateutils

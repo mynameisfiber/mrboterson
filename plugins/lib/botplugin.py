@@ -2,8 +2,8 @@ class BotPlugin(object):
     def __init__(self, bot):
         self.bot = bot
 
-    def events_transform(self, events):
-        return events
+    async def event_transform(self, event):
+        return event
 
     def help(self):
         return {}

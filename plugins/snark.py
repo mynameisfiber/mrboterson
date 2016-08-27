@@ -22,43 +22,42 @@ class SnarkPlugin(BotPlugin):
         "Fine... I hate you too.",
     ]
 
-    def events_transform(self, events):
-        for event in events:
-            if 'at_mention' in event['type']:
-                if event['text_clean'].startswith('please'):
-                    event['text_clean'] = event['text_clean'][6:].strip()
-                elif event['text_clean'].endswith('please'):
-                    event['text_clean'] = event['text_clean'][:-6].strip()
-                elif 'ignore_snark' not in event and \
-                        random.random() < self.probability:
-                    conv = self.bot.conversations.add_conversation(
-                        event,
-                        users=(event['user'],),
-                        channel=event['channel'],
-                        reply_callback=self.reply_callback,
-                        expire_callback=self.expire_callback,
-                    )
-                    self.rand_message(conv, self.messages)
-                    continue
-            yield event
+    async def event_transform(self, event):
+        if 'at_mention' in event['type']:
+            if event['text_clean'].startswith('please'):
+                event['text_clean'] = event['text_clean'][6:].strip()
+            elif event['text_clean'].endswith('please'):
+                event['text_clean'] = event['text_clean'][:-6].strip()
+            elif 'ignore_snark' not in event and \
+                    random.random() < self.probability:
+                conv = await self.bot.conversations.add_conversation(
+                    event,
+                    users=(event['user'],),
+                    channel=event['channel'],
+                    reply_callback=self.reply_callback,
+                    expire_callback=self.expire_callback,
+                )
+                await self.rand_message(conv, self.messages)
+                return
+        return event
 
-    def reply_callback(self, conv):
+    async def reply_callback(self, conv):
         if 'please' in conv.events[-1]['text_clean']:
-            self.rand_message(conv, self.thanks)
+            conv.done()
+            await self.rand_message(conv, self.thanks)
             orig_event = conv.events[0]
             orig_event['ignore_snark'] = True
-            self.bot.inject_event(orig_event)
-            conv.done()
+            await self.bot.dispatch_event(orig_event)
         else:
-            self.rand_message(conv, self.come_on)
+            await self.rand_message(conv, self.come_on)
 
-    def expire_callback(self, conv):
-        self.rand_message(conv, self.give_up)
+    async def expire_callback(self, conv):
+        await self.rand_message(conv, self.give_up)
 
-    def rand_message(self, conv, messages):
+    async def rand_message(self, conv, messages):
         channel = conv.channel
         who = " ".join("<@{}>:".format(w) for w in conv.users)
-        self.bot.send_message(
+        await self.bot.send_message(
             channel,
             "{} {}".format(who, random.choice(messages))
         )

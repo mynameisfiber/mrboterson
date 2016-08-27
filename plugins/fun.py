@@ -8,13 +8,10 @@ class FunPlugin(BotPlugin):
             "@{botname}: :bear:": "A meeting of bears",
         }
 
-    def on_at_mention(self, event):
+    async def on_at_mention(self, event):
         message = event['text_clean']
         if message.startswith('dance'):
-            self.bot.send_message(event['channel'], "└[∵┌]└[ ∵ ]┘[┐∵]┘")
-            return True
+            await self.bot.send_message(event['channel'], "└[∵┌]└[ ∵ ]┘[┐∵]┘")
         elif message.startswith('bear'):
-            self.bot.send_message(event['channel'], 
-                                  "http://i.imgur.com/hhxAirt.jpg")
-            return True
-        return False
+            await self.bot.send_message(event['channel'],
+                                        "http://i.imgur.com/hhxAirt.jpg")
