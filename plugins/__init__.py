@@ -3,6 +3,7 @@ from .snark import SnarkPlugin
 from .meeting import MeetingPlugin
 from .fun import FunPlugin
 from .trivia import TriviaPlugin
+from .animaniacs import AnimaniacsPlugin
 
 
 plugins = [
@@ -11,4 +12,5 @@ plugins = [
     MeetingPlugin,
     PinsPlugin,
     TriviaPlugin,
+    AnimaniacsPlugin,
 ]
