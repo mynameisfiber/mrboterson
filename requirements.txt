@@ -1,5 +1,6 @@
 humanize
-websocket
+websockets
+ujson
 aiohttp
 fuzzywuzzy
 python-Levenshtein
