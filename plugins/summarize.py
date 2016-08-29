@@ -10,7 +10,7 @@ class SummarizePlugin(BotPlugin):
 
     def help(self):
         return {
-            "@{botname}: summarize": "Summarize the channel",
+            "{botname}: summarize": "Summarize the channel",
         }
 
     async def on_at_mention(self, event):
@@ -42,7 +42,7 @@ class SummarizePlugin(BotPlugin):
         await self.bot.update_message(status, summary)
 
     async def _fetch_summary(self, messages):
-        response = await aiohttp.post(self.url, data="\n".join(messages))
+        response = await aiohttp.post(self.url, data="\n".join(messages), auth=auth)
         result = await response.json()
 
         return result['scored_article_sentences'][:5]

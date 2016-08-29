@@ -6,7 +6,7 @@ import asyncio
 class AnimaniacsPlugin(BotPlugin):
     def help(self):
         return {
-            "@{botname}: something cool": "Does a cool thing",
+            "{botname}: something cool": "Does a cool thing",
         }
 
     async def on_at_mention(self, event):

@@ -4,8 +4,8 @@ from .lib.botplugin import BotPlugin
 class FunPlugin(BotPlugin):
     def help(self):
         return {
-            "@{botname}: dance": "Do a little dance",
-            "@{botname}: :bear:": "A meeting of bears",
+            "{botname}: dance": "Do a little dance",
+            "{botname}: :bear:": "A meeting of bears",
         }
 
     async def on_at_mention(self, event):

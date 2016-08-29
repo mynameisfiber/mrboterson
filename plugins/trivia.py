@@ -10,9 +10,9 @@ class TriviaPlugin(BotPlugin):
 
     def help(self):
         return {
-            "@{botname}: start trivia": "Starts trivia",
-            "@{botname}: stop trivia": "Where once there was trivia, there will no longer be",
-            "@{botname}: score": "Where once there was trivia, tells you the score",
+            "{botname}: start trivia": "Starts trivia",
+            "{botname}: stop trivia": "Where once there was trivia, there will no longer be",
+            "{botname}: score": "Where once there was trivia, tells you the score",
         }
 
     async def on_at_mention(self, event):

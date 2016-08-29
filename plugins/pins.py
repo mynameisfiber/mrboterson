@@ -9,9 +9,9 @@ class PinsPlugin(BotPlugin):
 
     def help(self):
         return {
-            "@{botname}: get pins": "Show pins",
-            "@{botname}: pin [N]": "Pin the last N messages",
-            "@{botname}: delete pin [ID]": "Delete pin with ID",
+            "{botname}: get pins": "Show pins",
+            "{botname}: pin [N]": "Pin the last N messages",
+            "{botname}: delete pin [ID]": "Delete pin with ID",
         }
 
     async def on_at_mention(self, event):
