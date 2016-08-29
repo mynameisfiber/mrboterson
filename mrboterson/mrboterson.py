@@ -1,5 +1,6 @@
 from .slack_client import SlackClient, UnexpectedResponseCode
 from .conversation import ConversationManager
+from .lib.exception_eater import exception_eater_async
 
 import random
 import time
@@ -48,6 +49,7 @@ class MrBoterson(object):
                       "{} seconds".format(backoff))
                 time.sleep(backoff)
 
+    @exception_eater_async
     async def dispatch_event(self, event):
         for event_transform in self.event_transforms:
             event = await event_transform(event)
