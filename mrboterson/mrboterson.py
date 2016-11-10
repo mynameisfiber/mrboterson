@@ -8,14 +8,17 @@ import string
 from operator import itemgetter
 from collections import defaultdict
 import asyncio
+import logging
 
 
 class MrBoterson(object):
     def __init__(self, token, userid, plugins=[], timeout=1):
         self.sc = SlackClient(token)
         self.userid = userid
-        self.botname= '<@{}>'.format(userid)
+        self.botname = '<@{}>'.format(userid)
         self.timeout = timeout
+
+        self.logger = logging.getLogger(__name__)
 
         # set up global bot transforms
         self.conversations = ConversationManager(self)
@@ -37,16 +40,16 @@ class MrBoterson(object):
                                  *self.plugin_event_transforms]
 
     async def start(self):
-        print("Starting bot:", self.botname)
+        self.logger.info("Starting bot: %s", self.botname)
         backoff = 1
         while True:
             try:
-                print("Creating RTM connection")
+                self.logger.info("Creating RTM connection")
                 await self.sc.real_time_messaging(self.dispatch_event)
             except UnexpectedResponseCode:
                 backoff *= 2
-                print("Could not connect, backing off: " +
-                      "{} seconds".format(backoff))
+                self.logging.error("Could not connect, backing off: " +
+                                   "%d seconds", backoff)
                 time.sleep(backoff)
 
     @exception_eater_async
@@ -64,8 +67,8 @@ class MrBoterson(object):
             event_handlers = self.handlers.get(event_type, [])
             for handler in event_handlers:
                 plugin_name = handler.__self__.__class__.__name__
-                print("\nDispatching {} to {}"
-                      .format(event_type, plugin_name), end='')
+                self.logger.debug("\nDispatching {} to {}"
+                                  .format(event_type, plugin_name))
                 asyncio.ensure_future(handler(event))
 
     async def help(self, channel):

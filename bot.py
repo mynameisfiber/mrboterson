@@ -1,8 +1,15 @@
 import os
 import asyncio
+import logging
 
 from mrboterson import MrBoterson
-from plugins import plugins
+from mrboterson.plugins import plugins
+
+
+FORMAT = ('[%(asctime)-15s][%(levelname)s][%(module)s.%(funcName)s:%(lineno)d]'
+          '%(message)s')
+logging.basicConfig(format=FORMAT)
+logging.getLogger().setLevel(logging.DEBUG)
 
 
 if __name__ == "__main__":
