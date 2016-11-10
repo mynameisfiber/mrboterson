@@ -13,7 +13,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='mrboterson',
-    version='0.2.0',
+    version='0.2.1',
     description='quick and easy async slack bot library',
     author='Micha Gorelick',
     author_email='mynameisfiber@gmail.com',
