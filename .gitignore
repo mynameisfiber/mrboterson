@@ -5,3 +5,6 @@ env
 data/
 *.sql
 *.pkl
+build/
+dist/
+*.egg-info/
