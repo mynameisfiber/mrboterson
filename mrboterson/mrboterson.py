@@ -90,6 +90,12 @@ class MrBoterson(object):
                                       text=text, botname=self.botname,
                                       icon_url=self.icon_url, link_names=1)
 
+    async def send_file(self, channel, fd, filename=None):
+        filename = filename or getattr(fd, 'name', 'mrboterson')
+        files = {'file': fd}
+        return await self.sc.api_call("files.upload", channel=channel,
+                                      filename=filename, files=files)
+
     @property
     def icon_url(self):
         cat = random.choice(('cats', 'business', 'technics', 'abstract'))
