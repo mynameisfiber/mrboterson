@@ -28,6 +28,7 @@ setup(
         "License :: OSI Approved :: GNU Lesser General "
                 "Public License v3 or later (LGPLv3+)",
     ],
-    packages=['mrboterson', 'mrboterson.lib', 'mrboterson.plugins'],
+    packages=['mrboterson', 'mrboterson.lib', 'mrboterson.plugins',
+              'mrboterson.plugins.lib'],
     install_requires=requirements,
 )

@@ -93,11 +93,10 @@ class MrBoterson(object):
                                       text=text, botname=self.botname,
                                       icon_url=self.icon_url, link_names=1)
 
-    async def send_file(self, channel, fd, filename=None):
-        filename = filename or getattr(fd, 'name', 'mrboterson')
-        files = {'file': fd}
-        return await self.sc.api_call("files.upload", channel=channel,
-                                      filename=filename, files=files)
+    async def send_file(self, channel, fd, filename):
+        self.logger.debug("Sending file to %s: %s", channel, filename)
+        return await self.sc.api_call("files.upload", channels=channel,
+                                      filename=filename, file=fd)
 
     @property
     def icon_url(self):
