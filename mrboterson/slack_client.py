@@ -28,7 +28,7 @@ class SlackClient(object):
         data['token'] = self.token
         url = '{}/{}'.format(self.slack_api, path)
         form = aiohttp.FormData(data)
-        with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession() as session:
             async with session.post(url, data=form) as response:
                 if response.status != 200:
                     raise UnexpectedResponseCode(response.status)
